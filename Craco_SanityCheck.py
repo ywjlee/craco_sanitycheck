@@ -389,6 +389,7 @@ def find_ant_bl(bl, ant, zero_index=False):
 def overall_plot(nrows, ncols, cracodata, hwdata, nchan, parameter, output_path, v_min=0, v_max=5):
     fig, axs = plt.subplots(nrows, ncols, figsize=(40, 40))  # Adjust the figure size as needed
     assert (parameter == "Phase" or parameter == "Amplitude"), "Paramter should be 'Phase' or 'Amplitude'."
+    median_difference = []
     for i in range(nrows):
         for j in range(ncols):
             if i > j:
@@ -398,7 +399,8 @@ def overall_plot(nrows, ncols, cracodata, hwdata, nchan, parameter, output_path,
                 phase_diff = []
                 for k in range(nchan):
                     phase_diff.append(np.array(np.angle(cracodata[:,int(i*nrows+j-i*(i+1)/2),k])- np.angle(hwdata[:,overlap_hwbl[int(i*nrows+j-i*(i+1)/2)],k])))
-                axs[j,i].imshow(
+                median_difference.append(np.median(np.array(phase_diff)))
+                c = axs[j,i].imshow(
                     np.array(phase_diff), aspect="auto", 
                     vmin=-np.pi, vmax=np.pi,
                     cmap="coolwarm"
@@ -407,7 +409,8 @@ def overall_plot(nrows, ncols, cracodata, hwdata, nchan, parameter, output_path,
                 amp_ratio = []
                 for k in range(nchan):
                     amp_ratio.append(np.array(abs(cracodata[:,int(i*nrows+j-i*(i+1)/2),k])/abs(hwdata[:,overlap_hwbl[int(i*nrows+j-i*(i+1)/2)],k])))
-                axs[j,i].imshow(
+                median_difference.append(np.median(np.array(phase_diff)))
+                c = axs[j,i].imshow(
                     np.array(amp_ratio), aspect="auto",
                     vmin=v_min, vmax=v_max,
                 )
@@ -417,10 +420,16 @@ def overall_plot(nrows, ncols, cracodata, hwdata, nchan, parameter, output_path,
                 axs[j,i].set_xlabel(i, fontsize=20)
             if i == 0:
                 axs[j,i].set_ylabel(j+1, fontsize=20)
+    statistical_score = 1-np.nanstd(median_difference)
     fig.text(0.5,-0.01,"ANTENNA", ha='center', va='center', fontsize=40)
     fig.text(-0.01,0.5,"ANTENNA", ha='center', va='center', rotation='vertical', fontsize=40)
+    cbar_ax = fig.add_axes([0.92, 0.17, 0.018, 0.8])
+    cbar = fig.colorbar(c, cax=cbar_ax)
+    cbar.ax.tick_params(labelsize=36)
+    fig.text(0.65,0.55,f'Statistical score: {statistical_score:.4f}',fontsize=48)
     fig.tight_layout()
     plt.savefig(output_path)
+    print(f'Statistical score: {statistical_score:.4f}')
     
 def plot_one_baseline(antenna1, antenna2, cracodata, hwdata, nant, nchan):
     if antenna1 > antenna2:
@@ -465,8 +474,8 @@ def uvw_plot(cracouvw, hwuvw, overlap_hwbl, output_path, limit=6, dimension=3):
     plt.savefig(output_path)
     
 #The path to the ms file
-craco_tab_path = "./craco/54896/b00.uvw.ms/"
-hw_tab_path = "./hardware/54986/2023-11-27_051757_0.ms/"
+craco_tab_path = "/CRACO/DATA_00/craco/wan342/craco_develop/CRACO-251/data/62513"
+hw_tab_path = "/CRACO/DATA_00/craco/wan342/craco_develop/CRACO-251/data/60112"
 phase_diff_plot_output_path = "./phase_diff_plot.png"
 amplitude_ratio_plot_output_path = "./amplitude_ratio_plot.png"
 uvw_plot_output_path = "./uvw_plot.png"
@@ -481,7 +490,7 @@ overall_plot(nant, nant, cracodata, hwdata, nchan, "Phase", phase_diff_plot_outp
 overall_plot(nant, nant, cracodata, hwdata, nchan, "Amplitude", amplitude_ratio_plot_output_path)
 
 #Plot the percentage difference of uvw between CRACO and hardware data
-uvw_plot(cracouvw, hwuvw, overlap_hwbl, uvw_plot_output_path)
+#uvw_plot(cracouvw, hwuvw, overlap_hwbl, uvw_plot_output_path)
 
 #Plot the Phase difference and Amplitude ratio of a specific baseline by inputting ANTENNA1 and ANTENNA2
 #plot_one_baseline(10,12,cracodata,hwdata,nant,nchan)
